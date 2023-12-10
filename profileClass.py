@@ -8,6 +8,9 @@ from sklearn.cluster import DBSCAN
 from scipy.stats import multivariate_normal
 from sklearn import svm
 from sklearn import ensemble
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
 import time
 import sys
 import warnings
@@ -36,62 +39,75 @@ def distance(c,p):
     
     return(np.sqrt(s/n))
 
+
+
 Classes = {0:'Normal', 1:'SQLInjection'}
 plt.ion()
 nfgi = 1
-features_Normal = np.loadtxt('normal1_features.dat')
-features_SQLi = np.loadtxt('SQLiBasic_features.dat')
 
-oClass_Normal = np.ones((len(features_Normal),1))*0
+            # Get the features and classes from the files #
+features_Normal1 = np.loadtxt('features/normal2_features.dat')
+features_Normal2 = np.loadtxt('features/normal1_features.dat')
+features_Normal3 = np.loadtxt('features/normal3_features.dat')
+features_SQLi = np.loadtxt('features/blindboolean_features.dat')
+
+oClass_Normal = np.ones((len(features_Normal2)+len(features_Normal3),1))*0
+oClass_NormalTest = np.ones((len(features_Normal1),1))*0
 oClass_SQLi = np.ones((len(features_SQLi),1))*1
 
-features = np.vstack((features_Normal,features_SQLi))
+features = np.vstack((features_Normal2,features_Normal3,features_SQLi))
 oClass = np.vstack((oClass_Normal,oClass_SQLi))
 
-plt.figure(2)
-plotFeatures(features,oClass,4,10)
-plt.figure(3)
-plotFeatures(features,oClass,0,7)
+print("train size: {}".format(features.shape))
+print("Class size: {}".format(oClass.shape))
 
-percentage=0.5
-pN=int(len(features_Normal)*percentage)
-trainFeatures_normal=features_Normal[:pN,:]
-pSQL=int(len(features_SQLi)*percentage)
-trainFeatures_sqli=features_SQLi[:pN,:]
+                    # Train the model #
 
-i2train = trainFeatures_normal
-o2trainClass = oClass_Normal[:pN,:]
+trainFeaturesNormal = np.vstack((features_Normal2,features_Normal3))
+trainClass = oClass_Normal
 
-i3Ctrain = np.vstack((trainFeatures_normal,trainFeatures_sqli))
-o3CtrainClass = np.vstack((oClass_Normal[:pN,:],oClass_SQLi[:pSQL,:]))
+testFeaturesSQLi = features_SQLi
+testClassSQLi = oClass_SQLi
 
-testFeatures_normal=features_Normal[pN:,:]
-testFeatures_sqli=features_SQLi[pSQL:,:]
+testFeaturesNormal = features_Normal1
+testClassNormal = oClass_NormalTest
 
-iAtest = np.vstack((testFeatures_normal,testFeatures_sqli))
-o3testClass = np.vstack((oClass_Normal[pN:,:],oClass_SQLi[pSQL:,:]))
+scaler = MaxAbsScaler().fit(trainFeaturesNormal)
 
+trainFeaturesNormal=scaler.transform(trainFeaturesNormal)
+testFeaturesSQLi=scaler.transform(testFeaturesSQLi)
+testFeaturesNormal=scaler.transform(testFeaturesNormal) 
 
+                            # PCA #
+
+""" pca = PCA(n_components=28, svd_solver='full')
+
+trainPCA = pca.fit_transform(trainFeaturesNormal)
+trainFeaturesNormal = pca.transform(trainFeaturesNormal)
+
+testFeaturesSQLi = pca.fit_transform(testFeaturesSQLi)
+testFeaturesNormal = pca.transform(testFeaturesNormal)
+ """
+
+                            # One Class Support Vector #
 print('\n-- Anomaly Detection based on One Class Support Vector Machines--')
-i2train=np.vstack((trainFeatures_normal))
-i3Atest=np.vstack((testFeatures_normal,testFeatures_sqli))
-#scaler = MaxAbsScaler().fit(i2train)
-#i2train=scaler.transform(i2train)
 
-#scaler = MaxAbsScaler().fit(i3Atest)
-#i3Atest=scaler.transform(i3Atest)
+testFeatures = np.vstack((testFeaturesSQLi,testFeaturesNormal))
+testClass = np.vstack((testClassSQLi,testClassNormal))  
 
 nu=0.1
-ocsvm = svm.OneClassSVM(gamma='scale',kernel='linear',nu=nu).fit(i2train)  
-rbf_ocsvm = svm.OneClassSVM(gamma='scale',kernel='rbf',nu=nu).fit(i2train)  
-poly_ocsvm = svm.OneClassSVM(gamma='scale',kernel='poly',nu=nu,degree=4).fit(i2train)  
+ocsvm = svm.OneClassSVM(gamma='scale',kernel='linear',nu=nu).fit(trainFeaturesNormal, trainClass)  
+rbf_ocsvm = svm.OneClassSVM(gamma='scale',kernel='rbf',nu=nu).fit(trainFeaturesNormal, trainClass)  
+poly_ocsvm = svm.OneClassSVM(gamma='scale',kernel='poly',nu=nu,degree=4).fit(trainFeaturesNormal, trainClass)  
 
-L1=ocsvm.predict(i3Atest)
-L2=rbf_ocsvm.predict(i3Atest)
-L3=poly_ocsvm.predict(i3Atest)
+L1=ocsvm.predict(testFeatures)
+L2=rbf_ocsvm.predict(testFeatures)
+L3=poly_ocsvm.predict(testFeatures)
 
 AnomResults={-1:"Anomaly",1:"OK"}
 
-nObsTest,nFea=i3Atest.shape
+nObsTest,nFea=testFeatures.shape
 for i in range(nObsTest):
-    print('Obs: {:2} ({:<8}): Kernel Linear->{:<10} | Kernel RBF->{:<10} | Kernel Poly->{:<10}'.format(i,Classes[o3testClass[i][0]],AnomResults[L1[i]],AnomResults[L2[i]],AnomResults[L3[i]]))
+    print('Obs: {:2} ({:<8}): Kernel Linear->{:<10} | Kernel RBF->{:<10} | Kernel Poly->{:<10}'.format(i,Classes[testClass[i][0]],AnomResults[L1[i]],AnomResults[L2[i]],AnomResults[L3[i]]))
+
+

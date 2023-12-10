@@ -9,7 +9,7 @@ def Sampling(cap):
     info = stream.to_pandas()[["id", "requested_server_name", "src_ip", "dst_ip", "src_port", "dst_port", "protocol", "src2dst_packets", 
                                "src2dst_bytes", "dst2src_packets", "dst2src_bytes","bidirectional_first_seen_ms", "bidirectional_last_seen_ms",
                                "bidirectional_duration_ms","bidirectional_packets", "bidirectional_bytes", "bidirectional_max_piat_ms", "bidirectional_mean_piat_ms", "bidirectional_stddev_piat_ms", "bidirectional_stddev_ps",
-                               "bidirectional_rst_packets", "bidirectional_fin_packets"]]
+                               "bidirectional_rst_packets", "bidirectional_fin_packets", "bidirectional_psh_packets"]]
     
     return info
 
@@ -24,8 +24,8 @@ def main():
     sni = args.sni
 
     output_file = ''.join(args.input.split('.')[:-1])+"_features.dat"
-
-    data = Sampling(args.input)
+    output_file = 'features/'+output_file
+    data = Sampling('caps/'+args.input)
 
     data = data.sort_values(by=['bidirectional_first_seen_ms'])
 
@@ -56,6 +56,27 @@ def main():
 
         avgduration = data.iloc[win]["bidirectional_duration_ms"].mean()
         stdduration = data.iloc[win]["bidirectional_duration_ms"].std()
+        minduration = data.iloc[win]["bidirectional_duration_ms"].min()
+        maxduration = data.iloc[win]["bidirectional_duration_ms"].max()
+
+        avgpackets = data.iloc[win]["bidirectional_packets"].mean()
+        stdpackets = data.iloc[win]["bidirectional_packets"].std()
+        minpackets = data.iloc[win]["bidirectional_packets"].min()
+        maxpackets = data.iloc[win]["bidirectional_packets"].max()
+
+        avgmaxpiat = data.iloc[win]["bidirectional_max_piat_ms"].mean()
+        stdmaxpiat = data.iloc[win]["bidirectional_max_piat_ms"].std()
+        minmaxpiat = data.iloc[win]["bidirectional_max_piat_ms"].min()
+        maxmaxpiat = data.iloc[win]["bidirectional_max_piat_ms"].max()
+
+        avgminpiat = data.iloc[win]["bidirectional_mean_piat_ms"].mean()
+        stdminpiat = data.iloc[win]["bidirectional_mean_piat_ms"].std()
+        minminpiat = data.iloc[win]["bidirectional_mean_piat_ms"].min()
+        maxminpiat = data.iloc[win]["bidirectional_mean_piat_ms"].max()
+
+        max_piat = data.iloc[win]["bidirectional_max_piat_ms"].max()
+
+        time_diffs = data.iloc[win]['bidirectional_first_seen_ms'].diff()
 
         avgratio = avgdownbytes/avgupbytes if avgupbytes > 0 else avgdownbytes
         stdratio = stddownbytes/stdupbytes if stdupbytes > 0 else stddownbytes
@@ -70,7 +91,9 @@ def main():
         obs += 1
 
         if nflows > 0:
-            f = np.nan_to_num(np.array([nflows, avgupbytes, stdupbytes, avgdownbytes, stddownbytes, avgduration, stdduration, avgratio, stdratio, nfinflags, nrstflags]))
+            f = np.nan_to_num(np.array([nflows, avgupbytes, stdupbytes, avgdownbytes, stddownbytes, avgduration, stdduration, maxduration, 
+                                        avgpackets, stdpackets, minpackets, maxpackets, avgmaxpiat, stdmaxpiat, minmaxpiat, maxmaxpiat, avgminpiat, stdminpiat, minminpiat, maxminpiat,
+                                        avgratio, stdratio, avgpackets, stdpackets, max_piat, nfinflags, nrstflags, time_diffs.mean()]))
             print(nflows,avgupbytes,stdupbytes,avgdownbytes,stddownbytes,avgduration,stdduration,avgratio,stdratio)
             if 'allfeatures' not in locals():
                     allfeatures = f.copy()

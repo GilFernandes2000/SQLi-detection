@@ -18,13 +18,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', nargs='?',required=True, help='input file')
     parser.add_argument('-w', '--window', nargs='?',required=False, help='samplig delta interval (sec)',default=1)
-    parser.add_argument('-n', '--slider', nargs='?',required=False, help='slide',default=0)
+    parser.add_argument('-d', '--decision', nargs='?',required=False, help='decision',default=0)
     parser.add_argument('-s', '--sni', nargs='?',required=False, help='API SNI',default="")
     args = parser.parse_args()
 
     deltams = float(args.window)*1000
     sni = args.sni
-    slide = float(args.slider)*1000
+    slide = float(args.decision)*1000
     output_file = ''.join(args.input.split('.')[:-1])+"_features.dat"
     output_file = 'features/'+output_file
     data = Sampling('caps/'+args.input)

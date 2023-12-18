@@ -161,7 +161,6 @@ testClass = np.vstack((testClassSQLi,testClassNormal))
 plt.figure(1)
 plotFeatures(testFeatures,testClass,17,18, 'Mean', 'Standard Deviation', 'Duration')
 
-exit()
 
                            # Centroid Distances #
 

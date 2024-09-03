@@ -1,5 +1,5 @@
-# SQL injection detecter
-SQL injection detecter 
+# SQL injection detector
+SQL injection detector 
 
 ## Usage
 

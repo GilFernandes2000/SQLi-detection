@@ -1,5 +1,5 @@
-# ProjetoTPR
-SQLi injection detecter for the TPR class
+# SQL injection detecter
+SQL injection detecter 
 
 ## Usage
 
